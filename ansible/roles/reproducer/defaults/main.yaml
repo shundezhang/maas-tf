@@ -1,0 +1,4 @@
+---
+github_username: shundezhang
+lxd_version: "5.21/stable"
+lxd_init_file_test: /var/snap/lxd/common/lxd/storage-pools/default

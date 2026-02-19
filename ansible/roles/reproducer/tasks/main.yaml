@@ -1,0 +1,76 @@
+- name: install ansible
+  apt:
+    state: latest
+    name: "{{ item }}"
+    update_cache: true
+  with_items:
+    - apt-file
+    - byobu
+    - devscripts
+    - git
+    - lnav
+    - nmap
+    - python3-pip
+    - sshuttle
+    - unzip
+
+- name: Ensure snapd is installed (optional, but good practice)
+  ansible.builtin.package:
+    name: snapd
+    state: present
+
+- name: Install snap packages
+  community.general.snap:
+    name: "{{ item }}"
+    classic: true
+    state: present
+  with_items:
+    - yq
+    - hotsos
+    - xsos
+
+- name: Install lxd snap package
+  community.general.snap:
+    name: "{{ item }}"
+    classic: true
+    state: present
+    channel: "{{ lxd_version }}"
+  with_items:
+    - lxd
+
+- name: Add existing user "{{ ansible_user_id }}" to groups "lxd"
+  ansible.builtin.user:
+    name: "{{ ansible_user_id }}"
+    groups: "lxd"
+    append: true
+
+- name: Create a sudoers file for {{ ansible_user_id }} in /etc/sudoers.d/
+  ansible.builtin.copy:
+    dest: "/etc/sudoers.d/{{ ansible_user_id }}"
+    content: |
+      {{ ansible_user_id }} ALL=(ALL) NOPASSWD: ALL
+    mode: '0440' # Sets read-only permissions for root, which is required for security
+    owner: root
+    group: root
+
+- name: get preseed.yaml
+  set_fact:
+    preseed: "{{ lookup('template', 'preseed.yaml.j2') }}"
+
+- name: lxd init lxd-server.yml
+  command: lxd init --preseed <
+  args:
+    stdin: "{{ preseed }}"
+    creates: "{{ lxd_init_file_test }}"
+
+- name: Import keys from GitHub for multiple users
+  ansible.posix.authorized_key:
+    user: "{{ item }}"
+    key: "https://github.com/{{ item }}.keys"
+  with_items:
+    - {{ github_username }}
+
+- name: Write file to remote host
+  ansible.builtin.copy:
+    dest: "/home/{{ ansible_user_id }}/conf.env"
+    content: "{{ lookup('template', 'se-repros.env.j2') }}"
