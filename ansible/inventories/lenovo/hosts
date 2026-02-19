@@ -1,2 +1,7 @@
 [laptop]
-192.168.1.18 outbound_interface=wlp194s0
+192.168.1.18
+
+[laptop:vars]
+outbound_interface=wlp194s0
+ansible_password="{{ lookup('env', 'ssh_password') }}"
+ansible_become_password="{{ lookup('env', 'ssh_password') }}"

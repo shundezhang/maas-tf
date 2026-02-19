@@ -38,17 +38,17 @@
   with_items:
     - lxd
 
-- name: Add existing user "{{ ansible_user_id }}" to groups "lxd"
+- name: Add existing user "{{ ansible_user }}" to groups "lxd"
   ansible.builtin.user:
-    name: "{{ ansible_user_id }}"
+    name: "{{ ansible_user }}"
     groups: "lxd"
     append: true
 
-- name: Create a sudoers file for {{ ansible_user_id }} in /etc/sudoers.d/
+- name: Create a sudoers file for {{ ansible_user }} in /etc/sudoers.d/
   ansible.builtin.copy:
-    dest: "/etc/sudoers.d/{{ ansible_user_id }}"
+    dest: "/etc/sudoers.d/{{ ansible_user }}"
     content: |
-      {{ ansible_user_id }} ALL=(ALL) NOPASSWD: ALL
+      {{ ansible_user }} ALL=(ALL) NOPASSWD: ALL
     mode: '0440' # Sets read-only permissions for root, which is required for security
     owner: root
     group: root
@@ -63,14 +63,20 @@
     stdin: "{{ preseed }}"
     creates: "{{ lxd_init_file_test }}"
 
-- name: Import keys from GitHub for multiple users
+- name: Import keys from GitHub for {{ ansible_user }}
   ansible.posix.authorized_key:
-    user: "{{ item }}"
+    user: "{{ ansible_user }}"
     key: "https://github.com/{{ item }}.keys"
   with_items:
-    - {{ github_username }}
+    - "{{ github_username }}"
 
 - name: Write file to remote host
   ansible.builtin.copy:
-    dest: "/home/{{ ansible_user_id }}/conf.env"
+    dest: "/home/{{ ansible_user }}/conf.env"
     content: "{{ lookup('template', 'se-repros.env.j2') }}"
+
+- name: git checkout
+  git:
+    repo: "https://{{ github_username }}:{{ lookup('env', 'github_token') }}@github.com/canonical/se-support-reproducer-templates.git"
+    dest: "/home/{{ ansible_user }}/se-support-reproducer-templates"
+    version: main
