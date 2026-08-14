@@ -1,0 +1,15 @@
+- name: Create a sudoers file for {{ ansible_user }} in /etc/sudoers.d/
+  ansible.builtin.copy:
+    dest: "/etc/sudoers.d/{{ ansible_user }}"
+    content: |
+      {{ ansible_user }} ALL=(ALL) NOPASSWD: ALL
+    mode: '0440' # Sets read-only permissions for root, which is required for security
+    owner: root
+    group: root
+
+- name: Import keys from GitHub for {{ ansible_user }}
+  ansible.posix.authorized_key:
+    user: "{{ ansible_user }}"
+    key: "https://github.com/{{ item }}.keys"
+  with_items:
+    - "{{ github_username }}"

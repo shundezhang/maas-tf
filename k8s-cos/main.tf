@@ -10,3 +10,12 @@ terraform {
     }
   }
 }
+
+provider "maas" {
+  api_version = "2.0"
+  api_url     = var.maas_provider_api_url
+  api_key     = var.maas_provider_api_key
+}
+
+provider "external" {}
+

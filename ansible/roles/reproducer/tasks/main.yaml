@@ -1,4 +1,4 @@
-- name: install ansible
+- name: install deb packages
   apt:
     state: latest
     name: "{{ item }}"
@@ -28,6 +28,8 @@
     - yq
     - hotsos
     - xsos
+    - juju
+    - terraform
 
 - name: Install lxd snap package
   community.general.snap:
@@ -44,15 +46,6 @@
     groups: "lxd"
     append: true
 
-- name: Create a sudoers file for {{ ansible_user }} in /etc/sudoers.d/
-  ansible.builtin.copy:
-    dest: "/etc/sudoers.d/{{ ansible_user }}"
-    content: |
-      {{ ansible_user }} ALL=(ALL) NOPASSWD: ALL
-    mode: '0440' # Sets read-only permissions for root, which is required for security
-    owner: root
-    group: root
-
 - name: get preseed.yaml
   set_fact:
     preseed: "{{ lookup('template', 'preseed.yaml.j2') }}"
@@ -63,20 +56,15 @@
     stdin: "{{ preseed }}"
     creates: "{{ lxd_init_file_test }}"
 
-- name: Import keys from GitHub for {{ ansible_user }}
-  ansible.posix.authorized_key:
-    user: "{{ ansible_user }}"
-    key: "https://github.com/{{ item }}.keys"
-  with_items:
-    - "{{ github_username }}"
 
-- name: Write file to remote host
-  ansible.builtin.copy:
-    dest: "/home/{{ ansible_user }}/conf.env"
-    content: "{{ lookup('template', 'se-repros.env.j2') }}"
 
-- name: git checkout
-  git:
-    repo: "https://{{ github_username }}:{{ lookup('env', 'github_token') }}@github.com/canonical/se-support-reproducer-templates.git"
-    dest: "/home/{{ ansible_user }}/se-support-reproducer-templates"
-    version: main
+# - name: Write file to remote host
+#   ansible.builtin.copy:
+#     dest: "/home/{{ ansible_user }}/conf.env"
+#     content: "{{ lookup('template', 'se-repros.env.j2') }}"
+
+# - name: git checkout
+#   git:
+#     repo: "https://{{ github_username }}:{{ lookup('env', 'github_token') }}@github.com/canonical/se-support-reproducer-templates.git"
+#     dest: "/home/{{ ansible_user }}/se-support-reproducer-templates"
+#     version: main

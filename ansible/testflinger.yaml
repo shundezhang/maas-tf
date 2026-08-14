@@ -1,8 +1,7 @@
 ---
 
-- hosts: laptop
+- hosts: testflinger
   become: true
   roles:
-    - sudoer
     - reproducer
 

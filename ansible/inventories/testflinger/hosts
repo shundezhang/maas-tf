@@ -1,0 +1,5 @@
+[testflinger]
+10.241.4.30
+
+[testflinger:vars]
+outbound_interface=ens10f0
