@@ -179,6 +179,8 @@ resource "lxd_instance" "maas_instance" {
       "user.maas_ipv6_upstream_dns" = var.maas_ipv6_upstream_dns
       "user.maas_ipv6_subnet_start" = var.maas_oam_ipv6_subnet_start
       "user.maas_ipv6_subnet_end" = var.maas_oam_ipv6_subnet_end
+      "user.maas_ipv4_ext_network_address" = var.maas_external_ipv4_network_address
+      "user.maas_ipv4_ext_host_address" = var.maas_external_ipv4_host_address
       "user.maas_user" = var.maas_user
       "user.maas_password" = var.maas_password
       "user.maas_email" = var.maas_email

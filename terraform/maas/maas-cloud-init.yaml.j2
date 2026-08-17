@@ -12,15 +12,17 @@
 {% set custom_tld = "local" %}
 # MAAS Configurations
 ## Required
-{% set custom_maas_ipv4_host_address = "10.246.120.2" %}
-{% set custom_maas_ipv4_network_address = "10.246.120.1/24" %}
-{% set custom_maas_ipv4_dns = "10.246.120.1" %}
-{% set custom_maas_ipv4_subnet_start = "10.246.120.23" %}
-{% set custom_maas_ipv4_subnet_end = "10.246.120.87" %}
+{% set custom_maas_ipv4_host_address = "10.250.120.2" %}
+{% set custom_maas_ipv4_network_address = "10.250.120.1/24" %}
+{% set custom_maas_ipv4_dns = "10.250.120.1" %}
+{% set custom_maas_ipv4_subnet_start = "10.250.120.23" %}
+{% set custom_maas_ipv4_subnet_end = "10.250.120.87" %}
 {% set custom_maas_ipv6_network_address = "fd42:3959:4b5:5d92::/64" %}
 {% set custom_maas_ipv6_dns = "fd42:3959:4b5:5d92::1" %}
 {% set custom_maas_ipv6_subnet_start = "fd42:3959:4b5:5d92::23" %}
 {% set custom_maas_ipv6_subnet_end = "fd42:3959:4b5:5d92::7F" %}
+{% set custom_maas_ipv4_ext_host_address = "10.251.120.2" %}
+{% set custom_maas_ipv4_ext_network_address = "10.251.120.1/24" %}
 {% set custom_maas_project_name = "maas-repros" %}
 {% set custom_maas_client_cert = "" %}
 {% set custom_maas_client_key = "" %}
@@ -63,8 +65,8 @@
 {% set maas_ipv6_dns = meta.get("maas_ipv6_dns") or custom_maas_ipv6_dns %}
 {% set maas_ipv6_subnet_start = meta.get("maas_ipv6_subnet_start") or custom_maas_ipv6_subnet_start %}
 {% set maas_ipv6_subnet_end = meta.get("maas_ipv6_subnet_end") or custom_maas_ipv6_subnet_end %}
-{% set maas_project_name = meta.get("maas_project_name") or custom_maas_project_name %}
-{% set maas_package = meta.get("maas_package") or custom_maas_package %}
+{% set maas_ipv4_ext_host_address = meta.get("maas_ipv4_ext_host_address") or custom_maas_ipv4_ext_host_address %}
+{% set maas_ipv4_ext_network_address = meta.get("maas_ipv4_ext_network_address") or custom_maas_ipv4_ext_network_address %}
 {% set maas_channel = meta.get("maas_channel") or custom_maas_channel %}
 {% set maas_juju_channel = meta.get("maas_juju_channel") or custom_maas_juju_channel %}
 {% set maas_ipv4_upstream_dns = meta.get("maas_ipv4_upstream_dns") or custom_maas_ipv4_upstream_dns %}
@@ -205,11 +207,24 @@ write_files:
       id4=${subnet4[0]}
       fabric=${subnet4[1]}
       vid=${subnet4[2]}
+      subnet5=()
+      while [[ ${{ "{" }}#subnet5} -eq 0 ]]; do
+        subnet5=($(maas admin subnets read | jq -r '.[] | select(.name == "{{ maas_ipv4_ext_network_address|replace(".1/", ".0/") }}") | "\(.id) \(.vlan.fabric_id) \(.vlan.vid)"')) || \
+        sleep 2
+      done
+      id5=${subnet5[0]}
+      fabric5=${subnet5[1]}
+      vid5=${subnet5[2]}
       echo "$fabric"
-      maas admin ipranges create type=dynamic subnet=$id4 start_ip={{ maas_ipv4_subnet_start }} end_ip={{ maas_ipv4_subnet_end }}
-      maas admin vlan update "$fabric" "$vid" dhcp_on=True primary_rack=$(hostname -s)
+      maas admin spaces create name=oam-space
+      maas admin spaces create name=ext-space
+      maas admin ipranges create type=dynamic subnet=$id4 start_ip={{ maas_ipv4_network_address|replace(".1/", ".20/") }} end_ip={{ maas_ipv4_network_address|replace(".1/", ".50/") }}
+      maas admin ipranges create type=reserved subnet=$id4 start_ip={{ maas_ipv4_network_address|replace(".1/", ".100/") }} end_ip={{ maas_ipv4_network_address|replace(".1/", ".140/") }} comment="mycloud-internal-api"
+      maas admin ipranges create type=reserved subnet=$id4 start_ip={{ maas_ipv4_network_address|replace(".1/", ".150/") }} end_ip={{ maas_ipv4_network_address|replace(".1/", ".190/") }} comment="mycloud-public-api"
+      maas admin vlan update "$fabric" "$vid" dhcp_on=True primary_rack=$(hostname -s) space=oam-space
       maas admin maas set-config name=upstream_dns value="{{ maas_ipv4_upstream_dns }},{{ maas_ipv6_upstream_dns }}"
       maas admin subnet update "$id4" dns_servers={{ maas_ipv4_dns }} gateway_ip={{ maas_ipv4_network_address.split('/')[0] }}
+      maas admin vlan update "$fabric5" "$vid5" dhcp_on=False space=ext-space
 {% if maas_ipv6_network_address != "none" %}
       # Create and Configure ipv6 MAAS subnet
       id6=($(maas admin subnets read | jq -r '.[] | select(.name == "{{ maas_ipv6_network_address|replace(":1/", ":/") }}").id'))
@@ -255,7 +270,18 @@ write_files:
           anyuser:
             auth-type: oauth1
             maas-oauth: token
+  - path: /etc/netplan/60-eth1-static.yaml
+    permissions: '0600'
+    content: |
+      network:
+        version: 2
+        ethernets:
+          eth1:
+            dhcp4: false
+            addresses:
+              - {{ maas_ipv4_ext_host_address }}/24
 runcmd:
+    - netplan apply
     - /root/maas-init.sh
     - /root/maas-login.sh
     - /root/maas-config.sh
