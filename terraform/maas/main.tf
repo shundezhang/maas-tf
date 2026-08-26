@@ -65,8 +65,8 @@ resource "lxd_network" "maas_external" {
     "ipv4.address" = var.maas_external_ipv4_network_address
     "ipv4.nat"     = var.maas_external_network_ipv4_nat
     "ipv4.dhcp"    = var.maas_external_network_ipv4_dhcp
-    # "ipv6.address" = var.maas_external_ipv6_network_address
-    # "ipv6.nat"     = var.maas_external_network_ipv6_nat
+    "ipv6.dhcp"    = var.maas_external_network_ipv6_dhcp
+    "ipv6.nat"     = var.maas_external_network_ipv6_nat
     # "dns.domain"   = "${var.maas_id}"
     # "dns.search"   = "${var.maas_id}"
   }
@@ -156,6 +156,12 @@ resource "lxd_instance" "maas_instance" {
       "limits.memory" = var.maas_memory
 
       "cloud-init.user-data" = file(var.maas_cloud_init_file)
+      "cloud-init.network-config" = templatefile(var.maas_cloud_init_network_config_file, {
+        maas_ipv4_host_address      = var.maas_oam_ipv4_host_address
+        maas_ipv4_gateway_address   = cidrhost(var.maas_oam_ipv4_network_address, 1)
+        maas_ipv4_ext_host_address  = var.maas_external_ipv4_host_address
+        maas_ipv4_dns               = var.maas_ipv4_dns
+      })
       # If the values below are set and sourced from conf.env (local copy of template.env) they will be
       # passed over to the cloud-init file above to be parsed by jinja. These user settings
       # have defaults set in `variables.tf` as they are used in other reproducers.
@@ -171,10 +177,12 @@ resource "lxd_instance" "maas_instance" {
       "user.maas_image_releases" = var.maas_image_releases
       "user.maas_ipv4_dns" = var.maas_ipv4_dns
       "user.maas_ipv4_host_address" = var.maas_oam_ipv4_host_address
+      "user.maas_ipv4_gateway_address" = cidrhost(var.maas_oam_ipv4_network_address, 1)
       "user.maas_ipv4_network_address" = var.maas_oam_ipv4_network_address
       "user.maas_ipv4_upstream_dns" = var.maas_ipv4_upstream_dns
       "user.maas_ipv4_subnet_start" = var.maas_oam_ipv4_subnet_start
       "user.maas_ipv4_subnet_end" = var.maas_oam_ipv4_subnet_end
+      "user.maas_ipv6_network_address" = var.maas_oam_ipv6_network_address
       "user.maas_ipv6_dns" = var.maas_ipv6_dns
       "user.maas_ipv6_upstream_dns" = var.maas_ipv6_upstream_dns
       "user.maas_ipv6_subnet_start" = var.maas_oam_ipv6_subnet_start
@@ -197,7 +205,7 @@ resource "lxd_instance" "maas_instance" {
     type = "nic"
     properties = {
       network = lxd_network.maas_oam.name
-      "ipv4.address" = var.maas_oam_ipv4_host_address
+      # "ipv4.address" = var.maas_oam_ipv4_host_address
     }
   }
 

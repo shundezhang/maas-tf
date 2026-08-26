@@ -42,21 +42,21 @@ variable "maas_oam_ipv4_host_address" {
 
 variable "maas_oam_ipv4_subnet_start" {
   type    = string
-  default = "10.250.120.23"
+  default = "10.250.120.210"
 
   validation {
     condition     = can(cidrhost("${var.maas_oam_ipv4_subnet_start}/32", 0))
-    error_message = "Must be a valid single IPv4 address. (e.g. 10.250.120.23)"
+    error_message = "Must be a valid single IPv4 address. (e.g. 10.250.120.210)"
   }
 }
 
 variable "maas_oam_ipv4_subnet_end" {
   type    = string
-  default = "10.250.120.87"
+  default = "10.250.120.250"
 
   validation {
     condition     = can(cidrhost("${var.maas_oam_ipv4_subnet_end}/32", 0))
-    error_message = "Must be a valid single IPv4 address. (e.g. 10.250.120.87)"
+    error_message = "Must be a valid single IPv4 address. (e.g. 10.250.120.250)"
   }
 }
 
@@ -92,7 +92,7 @@ variable "maas_oam_ipv6_host_address" {
 
 variable "maas_oam_network_ipv6_nat" {
   type    = bool
-  default = true
+  default = false
 }
 
 variable "maas_oam_ipv6_subnet_start" {
@@ -137,7 +137,7 @@ variable "maas_external_ipv4_host_address" {
 
 variable "maas_external_ipv4_subnet_start" {
   type    = string
-  default = "10.251.120.23"
+  default = "10.251.120.200"
 
   validation {
     condition     = can(cidrhost("${var.maas_external_ipv4_subnet_start}/32", 0))
@@ -147,7 +147,7 @@ variable "maas_external_ipv4_subnet_start" {
 
 variable "maas_external_ipv4_subnet_end" {
   type    = string
-  default = "10.251.120.87"
+  default = "10.251.120.240"
 
   validation {
     condition     = can(cidrhost("${var.maas_external_ipv4_subnet_end}/32", 0))
@@ -161,6 +161,16 @@ variable "maas_external_network_ipv4_nat" {
 }
 
 variable "maas_external_network_ipv4_dhcp" {
+  type    = bool
+  default = false
+}
+
+variable "maas_external_network_ipv6_nat" {
+  type    = bool
+  default = false
+}
+
+variable "maas_external_network_ipv6_dhcp" {
   type    = bool
   default = false
 }
@@ -356,6 +366,16 @@ variable "maas_cloud_init_file" {
   }
 }
 
+variable "maas_cloud_init_network_config_file" {
+  type    = string
+  default = "maas-cloud-init-network-config.yaml.tftpl"
+
+  validation {
+    condition     = fileexists(var.maas_cloud_init_network_config_file) && can(regex("\\.yaml\\.tftpl$", var.maas_cloud_init_network_config_file))
+    error_message = "The cloud-init network config file must point to an existing file and end with .yaml.tftpl"
+  }
+}
+
 variable "extra_user_config" {
   type    = map(string)
   default = {}
@@ -402,5 +422,5 @@ variable "pro_token" {
 variable "tail_logs" {
   description = "Whether to stream live cloud-init logs to the terminal. If false, Terraform will silently wait for cloud-init to finish natively."
   type        = bool
-  default     = true
+  default     = false
 }

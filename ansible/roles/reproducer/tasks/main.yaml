@@ -57,6 +57,27 @@
     creates: "{{ lxd_init_file_test }}"
 
 
+- name: Copy tf dir to the remote home directory
+  ansible.builtin.copy:
+    src: ../terraform/            # trailing slash = copy contents
+    dest: "/home/{{ ansible_user }}/terraform/"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0755'
+  tags:
+    - copy_tf_scripts
+
+- name: Grab iptables NAT table
+  command: iptables -t nat -L PREROUTING
+  register: iptables_nat
+  changed_when: False
+
+- name: Add iptables masquerading to enable NATing
+  command: |
+    iptables -t nat -I PREROUTING -i {{ outbound_interface }} -p TCP -d {{ ansible_default_ipv4.address }} --dport 5240 -j DNAT --to-destination {{ maas_ip }}:5240 \
+    -m comment --comment 'maas_container_forward'
+  when:
+    - '"maas_container_forward" not in iptables_nat.stdout'
 
 # - name: Write file to remote host
 #   ansible.builtin.copy:
