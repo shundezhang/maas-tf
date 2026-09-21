@@ -1,5 +1,5 @@
 [testflinger]
-10.241.2.39
+10.241.4.20
 
 [testflinger:vars]
-outbound_interface=eno3
+outbound_interface=ens10f0

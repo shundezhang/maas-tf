@@ -184,6 +184,7 @@ write_files:
     content: |
       #!/bin/bash
       # Set up SSH for MAAS
+      echo "{{ maas_ipv4_host_address}} {{ hostname }}" >> /etc/hosts
 {% if ssh_key %}
       maas admin sshkeys create "key={{ ssh_key }}"
 {% else %}

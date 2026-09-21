@@ -260,10 +260,13 @@ variable "maas_juju_channel" {
 
 variable "maas_image_releases" {
   type    = string
-  default = "jammy" #Can be space separated series "jammy noble"
+  default = "jammy noble" #Can be space separated series "jammy noble"
 
   validation {
-    condition     = contains(["jammy", "noble"], var.maas_image_releases)
+    condition     = alltrue([
+      for release in split(" ", var.maas_image_releases) :
+      contains(["jammy", "noble"], release)
+    ])
     error_message = "maas_image_releases contain 'jammy' or 'noble'."
   }
 }

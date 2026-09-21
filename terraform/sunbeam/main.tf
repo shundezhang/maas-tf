@@ -38,7 +38,7 @@ resource "maas_subnet_ip_range" "oam_reserved_public" {
 }
 
 resource "maas_vm_host_machine" "juju_controller" {
-  hostname   = "juju-controller"
+  hostname   = "juju-controller-${count.index}"
   count   = var.juju_controller_count
   vm_host = "maas-repro"
   cores   = var.juju_controller_cpu
@@ -55,7 +55,7 @@ resource "maas_tag" "juju_controller" {
 }
 
 resource "maas_vm_host_machine" "sunbeam_controller" {
-  hostname   = "sunbeam-controller"
+  hostname   = "sunbeam-controller-${count.index}"
   count   = var.sunbeam_controller_count
   vm_host = "maas-repro"
   cores   = var.sunbeam_controller_cpu
@@ -67,7 +67,7 @@ resource "maas_vm_host_machine" "sunbeam_controller" {
 }
 
 resource "maas_tag" "sunbeam_controller" {
-  name = "sunbeam-controller"
+  name = "sunbeam"
   machines = maas_vm_host_machine.sunbeam_controller.*.id
 }
 
@@ -151,6 +151,14 @@ resource "maas_network_interface_tag" "cloud_eth1" {
   machine      = maas_vm_host_machine.cloud[count.index].id
   interface_id = data.maas_network_interface_physical.cloud_eth1[count.index].id
   tags         = ["neutron:physnet1"]
+}
+
+resource "maas_network_interface_link" "eth1_unconfigured" {
+  count             = var.cloud_count
+  machine           = maas_vm_host_machine.cloud[count.index].id
+  network_interface = maas_vm_host_machine.cloud[count.index].network_interfaces[1].id
+  subnet            = data.maas_subnet.ext_net.id
+  mode              = "LINK_UP" # Connects interface to subnet without allocating an IP
 }
 
 resource "maas_tag" "control" {
